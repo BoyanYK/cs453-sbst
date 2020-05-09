@@ -51,4 +51,13 @@ class AstLister(ast.NodeVisitor):
         print(node.id)
         print(node.ctx)
 
+    def visit_arguments(self, node: ast.arguments):
+        self.generic_visit(node)
+
+    def visit_arg(self, node: ast.arg):
+        self.generic_visit(node)
+
+    def visit_alias(self, node: ast.alias):
+        self.generic_visit(node)
+
 AstLister().visit(tree)
