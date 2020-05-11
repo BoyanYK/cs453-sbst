@@ -22,6 +22,7 @@ expr = NamedExpr(expr target, expr, value)
     | Compare(expr left, cmpop* ops, expr* comparators)
     | Call(expr func, expr* args, keyword* keywords)
     | Name(identifier id, expr_context ctx)
+    | Tuple(expr* elts, expr_context ctx)
 
 expr_context = Load | Store | Del | AugLoad | AugStore | Param
 
