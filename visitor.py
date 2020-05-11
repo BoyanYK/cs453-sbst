@@ -87,7 +87,7 @@ class AstLister(ast.NodeTransformer):
     def visit_Return(self, node: ast.Return):
         # * TypeDef: Return(expr? value)
         orig_return = node.value
-        to_return = ast.Return(value=ast.Tuple(elts=[orig_return, ast.Name(id='bd')]))\
+        to_return = ast.Return(value=ast.Tuple(elts=[orig_return, ast.Name(id='bd')]))
         return to_return
 
     # def visit_For(self, node: ast.For):
