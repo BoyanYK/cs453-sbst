@@ -9,6 +9,7 @@ stmt = FunctionDef(identifier name, arguments args,
     | Return(expr? value)
     | Assign(expr* targets, expr value, string? type_comment)
     | AugAssign(expr target, operator op, expr value)
+    | Return(expr? value)
  
     | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
     | While(expr test, stmt* body, stmt* orelse)
