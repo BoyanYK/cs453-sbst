@@ -20,7 +20,7 @@ def comp_to_bd(comp: ast.Compare):
     branch_distance.value = ast.Call(func=ast.Name(id='fitness_func', ctx=ast.Load()), args=[left, right], keywords=[])
     return func, branch_distance
 
-def enumerate_branch(node, branch):
+def enumerate_branch(node, branch, tree):
     """ 
     Given an AST node, checks if the node has branching and if not, marks its body and/or else 
     statements as branches
@@ -38,6 +38,8 @@ def enumerate_branch(node, branch):
             break
 
     if not has_branch:
+        depth = len(tree.sequence)
+        # print(ast.dump(tree.sequence[-1]), depth, end='\n-----\n')
         branch_counter = ast.parse("branch_ids_visited.add({})".format(branch)).body[0]
         branch += 1
         node.body = [branch_counter] + node.body
@@ -46,5 +48,5 @@ def enumerate_branch(node, branch):
             # print(ast.dump(branch_counter))
             branch += 1
             node.orelse = [branch_counter] + node.orelse
-        
+    tree.sequence = []
     return node, branch
