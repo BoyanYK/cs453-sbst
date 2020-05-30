@@ -5,16 +5,23 @@ import control_flow
 import sys, os
 import math
 import random
+import copy
+from state import get_neighbours
 
 def main():
     target_path = sys.argv[1]
     target_tree = astor.parse_file(target_path)
-    instrumented = visitor.TargetInstrumentation().visit(target_tree)
+    instrumented = visitor.TargetInstrumentation().visit(copy.deepcopy(target_tree))
+    # TODO Add Wrapper around function, so that you can call that wrapper with a list of arguments and then call the function With the correct number of arguments
+    args_number = len(target_tree.body[0].args.args)
+    # print(args_number)
+    # to_call = visitor.wrap_function(instrumented.body[0], [1,2,3])
+    # print(get_neighbours([10,15,20], 1))
     ast.fix_missing_locations(instrumented)
 
     targets = control_flow.get_targets(target_tree)
 
-    hill_climb(instrumented, targets)
+    hill_climb(instrumented, targets, args_number)
 
 # * Code from https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
 # Disable
@@ -25,55 +32,66 @@ def blockPrint():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-def hill_climb(tree, targets):
+def hill_climb(tree, targets, arg_count):
     import numpy as np
-    # TODO Loop for all targets ..
     for target, path in targets.items():
-    # path = list(targets.values())[0]
-    # print(path)
         path = list(reversed(path))[1:] # Removes function_def node
-    # trace = try_input(tree, 1)
-    # fitness, predicate_value = calculate_fitness(trace, path)
-    
-    # TODO Loop until fitness function ... 
         curr_fitness = 10000
-        value = random.randint(0, 100)
-        # value = 3
+        # value = random.randint(0, 100)
+        value = [random.randint(0, 100) for i in range(arg_count)]
         visited_states = {}
         local_minima_iter = 1
         while True:
-            trace = try_input(tree, value)
+            # print(type(value))
+            trace = try_wrapped(tree, value)
             new_fitness, predicate_value = calculate_fitness(trace, path)
-            visited_states[value] = new_fitness
+            visited_states[str(value)] = new_fitness
             if new_fitness == 0 or predicate_value:
                 break
             else:
-                neighbours = [value - local_minima_iter, value + local_minima_iter]
-                results = {}
-                results[value] = new_fitness
-                for neighbour in neighbours:
-                    if neighbour in visited_states:
-                        results[neighbour] = visited_states[neighbour]
-                    else:
-                        trace = try_input(tree, neighbour)
-                        neighb_fitness, neighb_predicate_value = calculate_fitness(trace, path)
-                        results[neighbour] = neighb_fitness
-                        visited_states[neighbour] = neighb_fitness
                 # print(value)
+                neighbours = get_neighbours(value, local_minima_iter)#[value - local_minima_iter, value + local_minima_iter]
+                results = {}
+                results[str(value)] = new_fitness
+                # print(neighbours)
+                for neighbour in neighbours:
+                    neighbour = list(neighbour)
+                    # print(neighbour)
+                    if str(neighbour) in visited_states:
+                        results[str(neighbour)] = visited_states[str(neighbour)]
+                    else:
+                        # print(neighbour)
+                        # print(type(neighbour))
+                        trace = try_wrapped(tree, neighbour)
+                        neighb_fitness, neighb_predicate_value = calculate_fitness(trace, path)
+                        results[str(neighbour)] = neighb_fitness
+                        visited_states[str(neighbour)] = neighb_fitness
+                    # break
+                # break
                 index = np.argmin(list(results.values()))
                 old_value = value
                 value = list(results.keys())[index]
-                # if value == new_fitness:
-                #     local_minima_iter += 1
-                # else:
-                #     local_minima_iter = 1
+                value = ast.literal_eval(value) # ? Converting string back to list
                 local_minima_iter = 1 if value != old_value else local_minima_iter + 1
-                # print(value)
-            # print("Current value {}, fitness {}".format(value, results[value]))
-            # break
 
         print(target, value, new_fitness, predicate_value)
-    # TODO New inputs based on fitness.. 
+
+
+def try_wrapped(tree, args):
+    # print(tree)
+    copy_tree = copy.deepcopy(tree)
+    exec_tree = visitor.wrap_function(copy_tree, args)
+    # print(astor.to_source(exec_tree))
+    trace = []
+    code = compile(exec_tree, filename='<blah>', mode='exec')
+    namespace = {}
+    exec(code, namespace)
+    # TODO Get name of function automatically
+    # TODO Pass correct number of arguments
+    blockPrint()
+    namespace['wrapper'](trace)
+    enablePrint()
+    return trace
 
 def try_input(tree, input):
     trace = []

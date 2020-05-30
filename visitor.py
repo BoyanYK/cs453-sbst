@@ -41,39 +41,38 @@ class TargetInstrumentation(ast.NodeTransformer):
     # def visit_For(self, node: ast.For):
     #     self.generic_visit(node)
     #     return node
+def wrap_function(tree, args):
+    wrapper = ast.FunctionDef(name='wrapper', 
+    args=ast.arguments(posonlyargs=[], args=[ast.arg(arg='trace', annotation=None, type_comment=None)], vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                defaults=[]), decorator_list=[], returns=None, type_comment=None)
+    target_call = tree.body[0].name + '('
+    for arg in args:
+        target_call += str(arg) + ', '
+    target_call += 'trace)'
+    call = ast.parse(target_call)
+    wrapper.body = [tree.body[0], call.body[0]]
+    tree.body = [wrapper]
+    ast.fix_missing_locations(tree)
+    return tree
 
-
-
-# newtree = TargetInstrumenation().visit(tree)
-# ast.fix_missing_locations(newtree)
-# # print(astor.dump_tree(newtree))
-
-# import control_flow
-# # node_dict, root = if_branch.get_custom_tree(tree)
-# targets = control_flow.get_targets(tree)
-# # print(targets)
-# target, path = list(targets.items())[2]
-# # path = path[1:]
-# print(target)
-# path = list(reversed(path))[1:]
-# print(path)
-# trace = []
-# code = compile(newtree, filename='<blah>', mode='exec')
-# namespace = {}
-# exec(code, namespace)
-# # eval(code.call(1,2,3,trace))
-# # print(trace.trace)
-# print(namespace['test_me'](3, trace))
-# # print(trace.trace)
-
-# approach = None, len(path) - 1
-# for entry in trace.trace:
-#     for stop in path:
-#         if stop.compare(entry):
-#             approach_level = len(path) - 1 - path.index(stop)
-#             if approach_level < approach[1]:
-#                 approach = entry, approach_level
-#             break
-
-# print("Approach ", approach)
-# # print(astor.to_source(newtree))
+# def wrap_function(tree, args):
+#     wrapper = ast.FunctionDef(name='wrapper', 
+#     args=ast.arguments(posonlyargs=[], args=[ast.arg(arg='args', annotation=None, type_comment=None), ast.arg(arg='trace', annotation=None, type_comment=None)], vararg=None,
+#                 kwonlyargs=[],
+#                 kw_defaults=[],
+#                 kwarg=None,
+#                 defaults=[]), decorator_list=[], returns=None, type_comment=None)
+#     # wrapper.body = [tree]
+#     target_call = tree.name + '('
+#     for arg in args:
+#         target_call += str(arg) + ', '
+#     target_call += 'trace)'
+#     call = ast.parse(target_call)
+#     wrapper.body = [tree, call]
+#     # print(astor.dump_tree(ast.parse("def wrapper(args, trace):\n  a = 1")))
+#     print(astor.to_source(wrapper))
+#     # print(astor.dump_tree(wrapper))
+#     return wrapper
