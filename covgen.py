@@ -7,7 +7,7 @@ import math
 import random
 import copy
 from state import get_neighbours
-from utils import blockPrint, enablePrint
+from fitness import calculate_fitness
 
 def main():
     target_path = sys.argv[1]
@@ -16,110 +16,80 @@ def main():
     except IndexError:
         iterations = 1000
     target_tree = astor.parse_file(target_path)
-    instrumented = visitor.TargetInstrumentation().visit(copy.deepcopy(target_tree))
-    # TODO Add Wrapper around function, so that you can call that wrapper with a list of arguments and then call the function With the correct number of arguments
+    
     args_number = len(target_tree.body[0].args.args)
-    # print(args_number)
-    # to_call = visitor.wrap_function(instrumented.body[0], [1,2,3])
-    # print(get_neighbours([10,15,20], 1))
-    ast.fix_missing_locations(instrumented)
 
     targets = control_flow.get_targets(target_tree)
 
-    hill_climb(instrumented, targets, args_number, iterations)
+    # hill_climb(target_tree, targets, args_number, iterations)
+    do_avm(target_tree, targets)
+
+
+def do_avm(tree, targets):
+    import avm
+    target, path = list(targets.items())[1]
+    path = list(reversed(path))[1:]
+    print(target)
+    instrumented = visitor.TargetInstrumentation(target, True)
+    instrumented = instrumented.visit(copy.deepcopy(tree))
+    search = avm.AVM(instrumented, path)
+    value = search.avm_ips()
+    print(value)
+
+
 
 
 def hill_climb(tree, targets, arg_count, iterations):
     import numpy as np
     for target, path in targets.items():
+        instrumented = visitor.TargetInstrumentation(target, True)
+        instrumented = instrumented.visit(copy.deepcopy(tree))
+        # ast.fix_missing_locations(instrumented)
+
         path = list(reversed(path))[1:] # Removes function_def node
         curr_fitness = 10000
         # value = random.randint(0, 100)
         value = [random.randint(0, 100) for i in range(arg_count)]
         visited_states = {}
         local_minima_iter = 1
-        n = 0
-        while n < iterations:
+        # n = 0
+        for n in range(iterations):
             # print(type(value))
             n += 1
-            trace = try_wrapped(tree, value)
-            new_fitness, predicate_value = calculate_fitness(trace, path)
+            # trace = try_wrapped(instrumented, value)
+            new_fitness, predicate_value, approach_level = calculate_fitness(instrumented, value, path)
             visited_states[str(value)] = new_fitness
-            if new_fitness == 0 or predicate_value:
+            # print(value)
+            if new_fitness <= 0 and predicate_value == True and approach_level == 0:
                 break
             else:
-                # print(value)
-                neighbours = get_neighbours(value, local_minima_iter)#[value - local_minima_iter, value + local_minima_iter]
+                neighbours = get_neighbours(value, local_minima_iter)
                 results = {}
                 results[str(value)] = new_fitness
-                # print(neighbours)
                 for neighbour in neighbours:
                     neighbour = list(neighbour)
                     # print(neighbour)
                     if str(neighbour) in visited_states:
                         results[str(neighbour)] = visited_states[str(neighbour)]
                     else:
-                        # print(neighbour)
-                        # print(type(neighbour))
-                        trace = try_wrapped(tree, neighbour)
-                        neighb_fitness, neighb_predicate_value = calculate_fitness(trace, path)
+                        # trace = try_wrapped(instrumented, neighbour)
+                        neighb_fitness, neighb_predicate_value, approach_level = calculate_fitness(instrumented, neighbour, path)
                         results[str(neighbour)] = neighb_fitness
                         visited_states[str(neighbour)] = neighb_fitness
                     # break
-                # break
+                # print(results)
                 index = np.argmin(list(results.values()))
                 old_value = value
                 value = list(results.keys())[index]
                 value = ast.literal_eval(value) # ? Converting string back to list
-                local_minima_iter = 1 if value != old_value else local_minima_iter + 1
-        if n == iterations:
+                local_minima_iter = 1 if value != old_value else local_minima_iter * 2
+                # break
+        if n > iterations:
             print(target, " -")
         else:
             print(target, value, new_fitness, predicate_value)
-
-
-def try_wrapped(tree, args):
-    # print(tree)
-    copy_tree = copy.deepcopy(tree)
-    exec_tree = visitor.wrap_function(copy_tree, args)
-    # print(astor.to_source(exec_tree))
-    trace = []
-    code = compile(exec_tree, filename='<blah>', mode='exec')
-    namespace = {}
-    exec(code, namespace)
-    # TODO Get name of function automatically
-    blockPrint()
-    namespace['wrapper'](trace)
-    enablePrint()
-    return trace
-
-# def try_input(tree, input):
-#     trace = []
-#     code = compile(tree, filename='<blah>', mode='exec')
-#     namespace = {}
-#     exec(code, namespace)
-#     # TODO Get name of function automatically
-#     blockPrint()
-#     namespace['test_me'](input, trace)
-#     enablePrint()
-#     return trace
-
-def calculate_fitness(trace, path):
-    approach = ('None', 10000, None, None), len(path) - 1
-    # print(trace)
-    # print(path)
-    for entry in trace:
-        for stop in path:
-            if stop.compare(entry):
-                approach_level = len(path) - 1 - path.index(stop)
-                if approach_level < approach[1] or approach_level == 0:
-                    approach = entry, approach_level
-                break
-    approach_level = approach[1]
-    branch_distance = approach[0][1]
-    # print(branch_distance)
-    fitness = approach_level + (1 - math.pow(1.001, -branch_distance)) 
-    return fitness, approach[0][2] 
+        # print(n)
+        # break
 
 
 if __name__ == "__main__":
