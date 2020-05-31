@@ -1,5 +1,6 @@
 import ast
 import fitness as ft
+import os, sys
 
 def comp_to_bd(comp: ast.Compare):
     """[summary]
@@ -20,33 +21,11 @@ def comp_to_bd(comp: ast.Compare):
     branch_distance.value = ast.Call(func=ast.Name(id='fitness_func', ctx=ast.Load()), args=[left, right], keywords=[])
     return func, branch_distance
 
-def enumerate_branch(node, branch, tree):
-    """ 
-    Given an AST node, checks if the node has branching and if not, marks its body and/or else 
-    statements as branches
-    Arguments:
-        node {ast element} -- AST node to verify
-        branch {int} -- Current branch number
+# * Code from https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
+# Disable
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
 
-    Returns:
-        ({ast element}, {int}) -- returns the same structure as input in order to continue iteration
-    """
-    has_branch = False
-    for stmt in node.body:
-        if isinstance(stmt, ast.If) or isinstance(stmt, ast.While):
-            has_branch = True
-            break
-
-    if not has_branch:
-        depth = len(tree.sequence)
-        # print(ast.dump(tree.sequence[-1]), depth, end='\n-----\n')
-        branch_counter = ast.parse("branch_ids_visited.add({})".format(branch)).body[0]
-        branch += 1
-        node.body = [branch_counter] + node.body
-        if node.orelse:
-            branch_counter = ast.parse("branch_ids_visited.add({})".format(branch)).body[0]
-            # print(ast.dump(branch_counter))
-            branch += 1
-            node.orelse = [branch_counter] + node.orelse
-    tree.sequence = []
-    return node, branch
+# Restore
+def enablePrint():
+    sys.stdout = sys.__stdout__

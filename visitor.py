@@ -1,6 +1,6 @@
 import ast
 import astor
-from utils import comp_to_bd, enumerate_branch
+from utils import comp_to_bd
 
 
 class TargetInstrumentation(ast.NodeTransformer):
@@ -57,22 +57,3 @@ def wrap_function(tree, args):
     tree.body = [wrapper]
     ast.fix_missing_locations(tree)
     return tree
-
-# def wrap_function(tree, args):
-#     wrapper = ast.FunctionDef(name='wrapper', 
-#     args=ast.arguments(posonlyargs=[], args=[ast.arg(arg='args', annotation=None, type_comment=None), ast.arg(arg='trace', annotation=None, type_comment=None)], vararg=None,
-#                 kwonlyargs=[],
-#                 kw_defaults=[],
-#                 kwarg=None,
-#                 defaults=[]), decorator_list=[], returns=None, type_comment=None)
-#     # wrapper.body = [tree]
-#     target_call = tree.name + '('
-#     for arg in args:
-#         target_call += str(arg) + ', '
-#     target_call += 'trace)'
-#     call = ast.parse(target_call)
-#     wrapper.body = [tree, call]
-#     # print(astor.dump_tree(ast.parse("def wrapper(args, trace):\n  a = 1")))
-#     print(astor.to_source(wrapper))
-#     # print(astor.dump_tree(wrapper))
-#     return wrapper

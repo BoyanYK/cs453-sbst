@@ -7,9 +7,14 @@ import math
 import random
 import copy
 from state import get_neighbours
+from utils import blockPrint, enablePrint
 
 def main():
     target_path = sys.argv[1]
+    try:
+        iterations = int(sys.argv[2])
+    except IndexError:
+        iterations = 1000
     target_tree = astor.parse_file(target_path)
     instrumented = visitor.TargetInstrumentation().visit(copy.deepcopy(target_tree))
     # TODO Add Wrapper around function, so that you can call that wrapper with a list of arguments and then call the function With the correct number of arguments
@@ -21,18 +26,10 @@ def main():
 
     targets = control_flow.get_targets(target_tree)
 
-    hill_climb(instrumented, targets, args_number)
+    hill_climb(instrumented, targets, args_number, iterations)
 
-# * Code from https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
-# Disable
-def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
 
-# Restore
-def enablePrint():
-    sys.stdout = sys.__stdout__
-
-def hill_climb(tree, targets, arg_count):
+def hill_climb(tree, targets, arg_count, iterations):
     import numpy as np
     for target, path in targets.items():
         path = list(reversed(path))[1:] # Removes function_def node
@@ -41,8 +38,10 @@ def hill_climb(tree, targets, arg_count):
         value = [random.randint(0, 100) for i in range(arg_count)]
         visited_states = {}
         local_minima_iter = 1
-        while True:
+        n = 0
+        while n < iterations:
             # print(type(value))
+            n += 1
             trace = try_wrapped(tree, value)
             new_fitness, predicate_value = calculate_fitness(trace, path)
             visited_states[str(value)] = new_fitness
@@ -73,8 +72,10 @@ def hill_climb(tree, targets, arg_count):
                 value = list(results.keys())[index]
                 value = ast.literal_eval(value) # ? Converting string back to list
                 local_minima_iter = 1 if value != old_value else local_minima_iter + 1
-
-        print(target, value, new_fitness, predicate_value)
+        if n == iterations:
+            print(target, " -")
+        else:
+            print(target, value, new_fitness, predicate_value)
 
 
 def try_wrapped(tree, args):
@@ -87,23 +88,21 @@ def try_wrapped(tree, args):
     namespace = {}
     exec(code, namespace)
     # TODO Get name of function automatically
-    # TODO Pass correct number of arguments
     blockPrint()
     namespace['wrapper'](trace)
     enablePrint()
     return trace
 
-def try_input(tree, input):
-    trace = []
-    code = compile(tree, filename='<blah>', mode='exec')
-    namespace = {}
-    exec(code, namespace)
-    # TODO Get name of function automatically
-    # TODO Pass correct number of arguments
-    blockPrint()
-    namespace['test_me'](input, trace)
-    enablePrint()
-    return trace
+# def try_input(tree, input):
+#     trace = []
+#     code = compile(tree, filename='<blah>', mode='exec')
+#     namespace = {}
+#     exec(code, namespace)
+#     # TODO Get name of function automatically
+#     blockPrint()
+#     namespace['test_me'](input, trace)
+#     enablePrint()
+#     return trace
 
 def calculate_fitness(trace, path):
     approach = ('None', 10000, None, None), len(path) - 1
