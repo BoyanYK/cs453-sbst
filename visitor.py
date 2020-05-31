@@ -1,16 +1,13 @@
 import ast
 import astor
-from utils import comp_to_bd
+# from utils import comp_to_bd
+from fitness import fitness_pred
 
 
 class TargetInstrumentation(ast.NodeTransformer):
-    def get_max_branch(self):
-        """Helper to get the maximum branch number for a function
-
-        Returns:
-            {int} -- Maximum branch
-        """
-        return self.branch 
+    def __init__(self, target, state):
+        self.target = target
+        self.state = state
         
     def visit_FunctionDef(self, node: ast.FunctionDef):
         # * TypeDef: FunctionDef(identifier name, arguments args,
@@ -23,7 +20,10 @@ class TargetInstrumentation(ast.NodeTransformer):
 
     def visit_If(self, node: ast.If):
         # * TypeDef: If(expr test, stmt* body, stmt* orelse)
-        func, branch_distance = comp_to_bd(node.test)
+        if node.lineno == self.target.lineno and node.__class__.__name__ == self.target.name:
+            func, branch_distance = comp_to_bd(node.test, self.state)
+        else:
+            func, branch_distance = comp_to_bd(node.test)
 
         tracing = ast.parse("trace.append((\"{}\", bd, {}, {}))".format(node.__class__.__name__, astor.to_source(node.test), node.lineno)).body[0]
         self.generic_visit(node)
@@ -31,7 +31,10 @@ class TargetInstrumentation(ast.NodeTransformer):
         
     def visit_While(self, node: ast.While):
         # * TypeDef: While(expr test, stmt* body, stmt* orelse)
-        func, branch_distance = comp_to_bd(node.test)
+        if node.lineno == self.target.lineno and node.__class__.__name__ == self.target.name:
+            func, branch_distance = comp_to_bd(node.test, self.state)
+        else:
+            func, branch_distance = comp_to_bd(node.test)
 
         tracing = ast.parse("trace.append((\"{}\", bd, {}, {}))".format(node.__class__.__name__, astor.to_source(node.test), node.lineno)).body[0]
         return func, branch_distance, tracing, node
@@ -57,3 +60,22 @@ def wrap_function(tree, args):
     tree.body = [wrapper]
     ast.fix_missing_locations(tree)
     return tree
+
+def comp_to_bd(comp: ast.Compare, state=True):
+    """[summary]
+    Given a comparator operator, returns an assignment to branch distance variable
+    
+    Arguments:
+        comp {ast.Compare} -- Comparator operator, part of {ast.If} or {ast.While}
+
+    Returns:
+        func {ast.Lambda} - Function to calculate branch distance
+        branch_distance {ast.expr} - Assigning the relevant branch distance calculation function return value to the branch distance variable
+    """
+    fit = fitness_pred(comp.ops[0], state)
+    func = ast.parse(fit).body[0]
+    left = comp.left
+    right = comp.comparators[0]
+    branch_distance = ast.Assign(targets=[ast.Name(id='bd', ctx=ast.Store())], type_comment=None)
+    branch_distance.value = ast.Call(func=ast.Name(id='fitness_func', ctx=ast.Load()), args=[left, right], keywords=[])
+    return func, branch_distance
