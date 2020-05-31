@@ -16,25 +16,24 @@ def main():
     except IndexError:
         iterations = 1000
     target_tree = astor.parse_file(target_path)
-    
-    args_number = len(target_tree.body[0].args.args)
+    # TODO Custom target function name
+    targets, arg_count = control_flow.get_targets(target_tree)
 
-    targets = control_flow.get_targets(target_tree)
-
-    # hill_climb(target_tree, targets, args_number, iterations)
-    do_avm(target_tree, targets)
+    # hill_climb(target_tree, targets, arg_count, iterations)
+    do_avm(target_tree, targets, arg_count, 10)
 
 
-def do_avm(tree, targets):
+def do_avm(tree, targets, arg_count, retry_count):
     import avm
-    target, path = list(targets.items())[1]
-    path = list(reversed(path))[1:]
-    print(target)
-    instrumented = visitor.TargetInstrumentation(target, True)
-    instrumented = instrumented.visit(copy.deepcopy(tree))
-    search = avm.AVM(instrumented, path)
-    value = search.avm_ips()
-    print(value)
+    for target, path in targets.items():
+        path = list(reversed(path))[1:]
+        print(target)
+        instrumented = visitor.TargetInstrumentation(target, True)
+        instrumented = instrumented.visit(copy.deepcopy(tree))
+        search = avm.AVM(instrumented, path, arg_count, retry_count)
+        # value = search.avm_ips()
+        value = search.avm()
+        print(value)
 
 
 

@@ -36,7 +36,12 @@ class Node(object):
         return self.name == target[0] and self.lineno == target[3]
 
 def get_custom_tree(tree):
-    function = Node(tree.body[0], 0)
+    arg_count = 0
+    for stmt in tree.body:
+        if isinstance(stmt, ast.FunctionDef) and stmt.name == 'test_me':
+            function = Node(stmt, 0)
+            arg_count = len(stmt.args.args)
+            break
     queue = []
     queue.append(function)
     flow_change = []
@@ -55,10 +60,10 @@ def get_custom_tree(tree):
 
         if isinstance(node.node, ast.If) or isinstance(node.node, ast.While):# Can't deal with For for now or isinstance(node.node, ast.For):
             flow_change.append(node)
-    return function, flow_change
+    return function, flow_change, arg_count
 
 def get_targets(tree):
-    root, flow_change = get_custom_tree(tree)
+    root, flow_change, arg_count  = get_custom_tree(tree)
     # print(flow_change)
     targets = {}
     for node in flow_change:
@@ -69,5 +74,5 @@ def get_targets(tree):
             node_tree.append(parent)
             iter_node = parent
         targets[node] = node_tree
-    return targets
+    return targets, arg_count
     

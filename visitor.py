@@ -5,16 +5,18 @@ from fitness import fitness_pred
 
 
 class TargetInstrumentation(ast.NodeTransformer):
-    def __init__(self, target, state):
+    def __init__(self, target, state, function_name="test_me"):
         self.target = target
         self.state = state
+        self.function_name = function_name
         
     def visit_FunctionDef(self, node: ast.FunctionDef):
         # * TypeDef: FunctionDef(identifier name, arguments args,
         # *             stmt* body, expr* decorator_list, expr? returns,
         # *             string? type_comment)
-        trace = ast.arg(arg="trace", annotation=None, type_comment=None)
-        node.args.args.append(trace)
+        if node.name == self.function_name:
+            trace = ast.arg(arg="trace", annotation=None, type_comment=None)
+            node.args.args.append(trace)
         self.generic_visit(node)
         return node
 
@@ -51,12 +53,12 @@ def wrap_function(tree, args):
                 kw_defaults=[],
                 kwarg=None,
                 defaults=[]), decorator_list=[], returns=None, type_comment=None)
-    target_call = tree.body[0].name + '('
+    target_call = 'test_me' + '('
     for arg in args:
         target_call += str(arg) + ', '
     target_call += 'trace)'
     call = ast.parse(target_call)
-    wrapper.body = [tree.body[0], call.body[0]]
+    wrapper.body = [*tree.body, call.body[0]]
     tree.body = [wrapper]
     ast.fix_missing_locations(tree)
     return tree
