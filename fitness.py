@@ -6,7 +6,6 @@ from utils import blockPrint, enablePrint
 
 
 def fitness_pred(pred, state=True):
-    # print(pred)
     # TODO Need to handle if predicate is compared to another value or to another variable
     if state:
         if isinstance(pred, ast.Eq):
@@ -37,13 +36,11 @@ def fitness_pred(pred, state=True):
 
 def calculate_fitness(tree, value, path):
     trace = try_wrapped(tree, value)
-    return compare_approach(trace, path) 
+    return compare_approach(trace, path, value) 
 
 def try_wrapped(tree, args):
-    # print(tree)
     copy_tree = copy.deepcopy(tree)
     exec_tree = visitor.wrap_function(copy_tree, args)
-    # print(astor.to_source(exec_tree))
     trace = []
     code = compile(exec_tree, filename='<blah>', mode='exec')
     namespace = {}
@@ -54,22 +51,32 @@ def try_wrapped(tree, args):
     enablePrint()
     return trace
 
-def compare_approach(trace, path):
+def compare_approach(trace, path, value):
     approach = ('None', 10000, None, None), len(path) - 1
     
+    # TODO I think this needs to compare branch distance on any node in the correct path
     for entry in trace:
         for stop in path:
             if stop.compare(entry):
                 approach_level = len(path) - 1 - path.index(stop)
                 if approach_level < approach[1] or approach_level == 0:
                     approach = entry, approach_level
-                break
+                    break
     approach_level = approach[1]
     branch_distance = approach[0][1]
-    fitness = approach_level + (1 - math.pow(1.00001, -branch_distance)) 
+
+    fitness = approach_level + (1 - math.pow(1.001, -branch_distance)) 
+
+    # try:
+    #     fitness = approach_level + (1 - math.pow(1.001, -branch_distance)) 
+    # except OverflowError:
+    #     pass
     # print(trace)
     # print(path)
     # print("Approach Level :", approach_level)
     # print("Branch Distance :",branch_distance)
+    # print("Values tried: ", value)
     # print("Fitness: ", fitness)
+    # print(entry)
+    # print(approach)
     return fitness, approach[0][2], approach_level
