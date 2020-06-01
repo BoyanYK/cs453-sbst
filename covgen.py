@@ -8,6 +8,7 @@ import random
 import copy
 from state import get_neighbours
 from fitness import calculate_fitness
+from utils import TimeExceeded
 
 def main():
     target_path = sys.argv[1]
@@ -87,32 +88,36 @@ def hill_climb(tree, targets, arg_count, iterations):
                 # print(type(value))
                 n += 1
                 # trace = try_wrapped(instrumented, value)
-                new_fitness, predicate_value, approach_level = calculate_fitness(instrumented, value, path)
-                visited_states[str(value)] = new_fitness
-                # print(value, new_fitness, predicate_value)
-                if new_fitness <= 0 and predicate_value == state and approach_level == 0:
+                try:
+                    new_fitness, predicate_value, approach_level = calculate_fitness(instrumented, value, path)
+                    visited_states[str(value)] = new_fitness
+                    # print(value, new_fitness, predicate_value)
+                    if new_fitness <= 0 and predicate_value == state and approach_level == 0:
+                        break
+                    else:
+                        neighbours = get_neighbours(value, local_minima_iter)
+                        results = {}
+                        results[str(value)] = new_fitness
+                        for neighbour in neighbours:
+                            neighbour = list(neighbour)
+                            # print(neighbour)
+                            if str(neighbour) in visited_states:
+                                results[str(neighbour)] = visited_states[str(neighbour)]
+                            else:
+                                # trace = try_wrapped(instrumented, neighbour)
+                                neighb_fitness, neighb_predicate_value, approach_level = calculate_fitness(instrumented, neighbour, path)
+                                results[str(neighbour)] = neighb_fitness
+                                visited_states[str(neighbour)] = neighb_fitness
+                            # break
+                        # print(results)
+                        index = np.argmin(list(results.values()))
+                        old_value = value
+                        value = list(results.keys())[index]
+                        value = ast.literal_eval(value) # ? Converting string back to list
+                        local_minima_iter = 1 if value != old_value else local_minima_iter * 2
+                except TimeExceeded:
+                    n = iterations + 1
                     break
-                else:
-                    neighbours = get_neighbours(value, local_minima_iter)
-                    results = {}
-                    results[str(value)] = new_fitness
-                    for neighbour in neighbours:
-                        neighbour = list(neighbour)
-                        # print(neighbour)
-                        if str(neighbour) in visited_states:
-                            results[str(neighbour)] = visited_states[str(neighbour)]
-                        else:
-                            # trace = try_wrapped(instrumented, neighbour)
-                            neighb_fitness, neighb_predicate_value, approach_level = calculate_fitness(instrumented, neighbour, path)
-                            results[str(neighbour)] = neighb_fitness
-                            visited_states[str(neighbour)] = neighb_fitness
-                        # break
-                    # print(results)
-                    index = np.argmin(list(results.values()))
-                    old_value = value
-                    value = list(results.keys())[index]
-                    value = ast.literal_eval(value) # ? Converting string back to list
-                    local_minima_iter = 1 if value != old_value else local_minima_iter * 2
                     # break
             if n > iterations:
                 print(target, " -")
