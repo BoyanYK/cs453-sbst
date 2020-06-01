@@ -46,14 +46,14 @@ class TargetInstrumentation(ast.NodeTransformer):
     # def visit_For(self, node: ast.For):
     #     self.generic_visit(node)
     #     return node
-def wrap_function(tree, args):
+def wrap_function(tree, args, func_name="test_me"):
     wrapper = ast.FunctionDef(name='wrapper', 
     args=ast.arguments(posonlyargs=[], args=[ast.arg(arg='trace', annotation=None, type_comment=None)], vararg=None,
                 kwonlyargs=[],
                 kw_defaults=[],
                 kwarg=None,
                 defaults=[]), decorator_list=[], returns=None, type_comment=None)
-    target_call = 'test_me' + '('
+    target_call = func_name + '('
     for arg in args:
         target_call += str(arg) + ', '
     target_call += 'trace)'

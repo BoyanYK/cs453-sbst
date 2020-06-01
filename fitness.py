@@ -34,13 +34,13 @@ def fitness_pred(pred, state=True):
         elif isinstance(pred, ast.LtE):
             return "fitness_func = lambda a, b, K=1: b - a + K"
 
-def calculate_fitness(tree, value, path):
-    trace = try_wrapped(tree, value)
+def calculate_fitness(tree, value, path, func_name="test_me"):
+    trace = try_wrapped(copy.deepcopy(tree), value, func_name)
     return compare_approach(trace, path, value) 
 
-def try_wrapped(tree, args):
+def try_wrapped(tree, args, func_name="test_me"):
     copy_tree = copy.deepcopy(tree)
-    exec_tree = visitor.wrap_function(copy_tree, args)
+    exec_tree = visitor.wrap_function(tree, args, func_name)
     trace = []
     code = compile(exec_tree, filename='<blah>', mode='exec')
     namespace = {}

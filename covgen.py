@@ -13,6 +13,7 @@ from utils import TimeExceeded
 def main():
     target_path = sys.argv[1]
     method = "avm_ips"
+    target_function = "test_me"
     iterations = 1000
     try:
         method = sys.argv[2]
@@ -23,15 +24,15 @@ def main():
     target_tree = astor.parse_file(target_path)
     # print(astor.dump_tree(target_tree))
     # TODO Custom target function name
-    targets, arg_count = control_flow.get_targets(target_tree)
+    targets, arg_count = control_flow.get_targets(target_tree, target_function)
     if "avm" in method:
-        do_avm(target_tree, targets, arg_count, 10, method, iterations)
+        perform_avm(target_tree, targets, arg_count, 10, method, iterations, target_function)
     elif "hill_climb" in method:
-        hill_climb(target_tree, targets, arg_count, iterations)
+        hill_climb(target_tree, targets, arg_count, iterations, target_function)
 
 
 
-def do_avm(tree, targets, arg_count, retry_count, method, iterations):
+def perform_avm(tree, targets, arg_count, retry_count, method, iterations, target_function="test_me"):
     import avm
     results_true = {}
     results_false = {}
@@ -54,7 +55,7 @@ def do_avm(tree, targets, arg_count, retry_count, method, iterations):
             # print(results_true)
             instrumented = visitor.TargetInstrumentation(target, state)
             instrumented = instrumented.visit(copy.deepcopy(tree))
-            search = avm.AVM(instrumented, path, arg_count, retry_count, state, iterations)
+            search = avm.AVM(instrumented, path, arg_count, retry_count, state, iterations, target_function)
             # value = search.avm_ips()
             value = search.search(method, start_value)
             print(target," Value: ", value)
@@ -67,9 +68,7 @@ def do_avm(tree, targets, arg_count, retry_count, method, iterations):
             # results[(target, state)] = value
 
 
-
-
-def hill_climb(tree, targets, arg_count, iterations):
+def hill_climb(tree, targets, arg_count, iterations, target_function="test_me"):
     import numpy as np
     for target, path in targets.items():
         path = list(reversed(path))[1:] # Removes function_def node
@@ -89,7 +88,7 @@ def hill_climb(tree, targets, arg_count, iterations):
                 n += 1
                 # trace = try_wrapped(instrumented, value)
                 try:
-                    new_fitness, predicate_value, approach_level = calculate_fitness(instrumented, value, path)
+                    new_fitness, predicate_value, approach_level = calculate_fitness(instrumented, value, path, target_function)
                     visited_states[str(value)] = new_fitness
                     # print(value, new_fitness, predicate_value)
                     if new_fitness <= 0 and predicate_value == state and approach_level == 0:
@@ -105,7 +104,7 @@ def hill_climb(tree, targets, arg_count, iterations):
                                 results[str(neighbour)] = visited_states[str(neighbour)]
                             else:
                                 # trace = try_wrapped(instrumented, neighbour)
-                                neighb_fitness, neighb_predicate_value, approach_level = calculate_fitness(instrumented, neighbour, path)
+                                neighb_fitness, neighb_predicate_value, approach_level = calculate_fitness(instrumented, neighbour, path, target_function)
                                 results[str(neighbour)] = neighb_fitness
                                 visited_states[str(neighbour)] = neighb_fitness
                             # break

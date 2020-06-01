@@ -2,10 +2,10 @@ from fitness import calculate_fitness
 from math import floor, ceil
 import random
 import copy
-from utils import fib, min_n, AnswerFound, TimeExceeded, IterationsExceeded
+from utils import fib, min_n, AnswerFound, TimeExceeded
 
 class AVM():
-    def __init__(self, tree, path, arg_count, attempts, state, iteration_limit):
+    def __init__(self, tree, path, arg_count, attempts, state, iteration_limit, func_name="test_me"):
         self.results = {}
         self.tree = tree
         self.path = path
@@ -16,13 +16,14 @@ class AVM():
         self.range = 10
         self.iteration_limit = iteration_limit
         self.iterations = 0
+        self.func_name = func_name
 
     def get_f(self, inputs, index, value):
         inputs[index] = value
         if str(inputs) in self.results:
             return self.results[str(inputs)]
         else:
-            fitness, branch_state, approach_level = calculate_fitness(self.tree, inputs, self.path)
+            fitness, branch_state, approach_level = calculate_fitness(self.tree, inputs, self.path, self.func_name)
             # self.iterations += 1
             # # print(self.iterations)
             # if self.iteration_limit < self.iterations:
@@ -37,7 +38,7 @@ class AVM():
             return fitness
 
     def satisfied_condition(self, inputs):
-        return calculate_fitness(self.tree, inputs, self.path)[1] == self.state
+        return calculate_fitness(self.tree, inputs, self.path, self.func_name)[1] == self.state
 
     def search(self, method="avm", inputs=None):
         if "ips" in method:
@@ -47,7 +48,7 @@ class AVM():
         elif "ls" in method:
             return self.avm([self.avm_ls], inputs)
         elif "avm" in method:
-            # Run all methods, if necessary
+            # * Run all methods, if necessary
             return self.avm([self.avm_ips, self.avm_gs, self.avm_ls], inputs)
 
     def avm(self, methods, inputs=None):
@@ -68,10 +69,10 @@ class AVM():
                         return "Unable to find solution, time exceeded", inputs
                     if fitness <= 0.0 and self.satisfied_condition(inputs):
                         # break
-                        return inputs, calculate_fitness(self.tree, inputs, self.path)
+                        return inputs, calculate_fitness(self.tree, inputs, self.path, self.func_name)
                     inputs[i] = value
                 if self.satisfied_condition(inputs):
-                    return inputs, calculate_fitness(self.tree, inputs, self.path)
+                    return inputs, calculate_fitness(self.tree, inputs, self.path, self.func_name)
                 inputs = None
                 self.range *= 10
         # print(self.results)

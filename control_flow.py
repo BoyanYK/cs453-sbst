@@ -35,7 +35,7 @@ class Node(object):
     def compare(self, target):
         return self.name == target[0] and self.lineno == target[3]
 
-def get_custom_tree(tree):
+def get_custom_tree(tree, func_name="test_me"):
     arg_count = 0
     for stmt in tree.body:
         if isinstance(stmt, ast.FunctionDef) and stmt.name == 'test_me':
@@ -62,8 +62,8 @@ def get_custom_tree(tree):
             flow_change.append(node)
     return function, flow_change, arg_count
 
-def get_targets(tree):
-    root, flow_change, arg_count  = get_custom_tree(tree)
+def get_targets(tree, func_name="test_me"):
+    root, flow_change, arg_count  = get_custom_tree(tree, func_name)
     # print(flow_change)
     targets = {}
     for node in flow_change:
