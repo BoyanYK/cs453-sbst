@@ -11,48 +11,54 @@ from fitness import calculate_fitness
 
 def main():
     target_path = sys.argv[1]
+    method = "avm_ips"
+    iterations = 1000
     try:
-        iterations = int(sys.argv[2])
+        method = sys.argv[2]
+        iterations = int(sys.argv[3])
     except IndexError:
-        iterations = 1000
+        # iterations = 1000
+        pass
     target_tree = astor.parse_file(target_path)
     # print(astor.dump_tree(target_tree))
     # TODO Custom target function name
     targets, arg_count = control_flow.get_targets(target_tree)
+    if "avm" in method:
+        do_avm(target_tree, targets, arg_count, 10, method)
+    elif "hill_climb" in method:
+        hill_climb(target_tree, targets, arg_count, iterations)
 
-    # hill_climb(target_tree, targets, arg_count, iterations)
-    do_avm(target_tree, targets, arg_count, 10)
 
 
-def do_avm(tree, targets, arg_count, retry_count):
+def do_avm(tree, targets, arg_count, retry_count, method):
     import avm
     results_true = {}
     results_false = {}
     for target, path in targets.items():
         path = list(reversed(path))[1:]
-        print(target)
+        # print(target)
         # print(results_true)
         # print(results_false)
         for state in [True, False]:
             start_value = None
-            for prev_target in results_true.keys():
+            for prev_target, (inputs, _) in results_true.items():
+                # inputs, _ = value
                 # print('-----\n',prev,'-----')
                 # print(prev_target, prev_state)
-                if prev_target in path:
-                    start_value = results_true[prev_target][0]
-                    start_value = start_value if type(start_value) == list else None
-                    # print('-----\n',target, start_value, '\n-----')
-
+                if prev_target in path and prev_target.lineno != target.lineno:
+                    # start_value = inputs
+                    start_value = copy.deepcopy(inputs) if type(inputs) == list else None
+                    # print('----- ',prev_target, target, start_value, ' -----')
+            # print(results_true)
             instrumented = visitor.TargetInstrumentation(target, state)
             instrumented = instrumented.visit(copy.deepcopy(tree))
             search = avm.AVM(instrumented, path, arg_count, retry_count, state)
             # value = search.avm_ips()
-            value = search.search("avm_ips", start_value)
-            print("Value: ", value)
+            value = search.search(method, start_value)
+            print(target," Value: ", value)
             # print(target, state)
             if state:
                 results_true[target] = value
-                # print(results_true)
             else:
                 results_false[target] = value
                 # print(results_false)
