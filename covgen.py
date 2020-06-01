@@ -12,7 +12,7 @@ from utils import TimeExceeded
 
 def main():
     target_path = sys.argv[1]
-    method = "avm_ips"
+    method = "avm"
     target_function = "test_me"
     iterations = 1000
     retries = 10
@@ -25,7 +25,7 @@ def main():
         pass
     target_tree = astor.parse_file(target_path)
     target_functions = []
-    if int(target_function) == 1:
+    if target_function == "1":
         for item in target_tree.body:
             print(item)
             if isinstance(item, ast.FunctionDef):
