@@ -24,35 +24,36 @@ def main():
     # TODO Custom target function name
     targets, arg_count = control_flow.get_targets(target_tree)
     if "avm" in method:
-        do_avm(target_tree, targets, arg_count, 10, method)
+        do_avm(target_tree, targets, arg_count, 10, method, iterations)
     elif "hill_climb" in method:
         hill_climb(target_tree, targets, arg_count, iterations)
 
 
 
-def do_avm(tree, targets, arg_count, retry_count, method):
+def do_avm(tree, targets, arg_count, retry_count, method, iterations):
     import avm
     results_true = {}
     results_false = {}
     for target, path in targets.items():
         path = list(reversed(path))[1:]
-        # print(target)
+        print("\nStarting :", target)
         # print(results_true)
         # print(results_false)
         for state in [True, False]:
             start_value = None
+            # if state:
             for prev_target, (inputs, _) in results_true.items():
                 # inputs, _ = value
                 # print('-----\n',prev,'-----')
                 # print(prev_target, prev_state)
-                if prev_target in path and prev_target.lineno != target.lineno:
+                # if prev_target in path and prev_target.lineno != target.lineno:
                     # start_value = inputs
-                    start_value = copy.deepcopy(inputs) if type(inputs) == list else None
+                start_value = copy.deepcopy(inputs) if type(inputs) == list else None
                     # print('----- ',prev_target, target, start_value, ' -----')
             # print(results_true)
             instrumented = visitor.TargetInstrumentation(target, state)
             instrumented = instrumented.visit(copy.deepcopy(tree))
-            search = avm.AVM(instrumented, path, arg_count, retry_count, state)
+            search = avm.AVM(instrumented, path, arg_count, retry_count, state, iterations)
             # value = search.avm_ips()
             value = search.search(method, start_value)
             print(target," Value: ", value)

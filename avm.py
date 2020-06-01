@@ -2,13 +2,10 @@ from fitness import calculate_fitness
 from math import floor, ceil
 import random
 import copy
-from utils import fib, min_n
-
-class AnswerFound(Exception):
-    pass
+from utils import fib, min_n, AnswerFound, TimeExceeded, IterationsExceeded
 
 class AVM():
-    def __init__(self, tree, path, arg_count, attempts, state):
+    def __init__(self, tree, path, arg_count, attempts, state, iteration_limit):
         self.results = {}
         self.tree = tree
         self.path = path
@@ -17,13 +14,20 @@ class AVM():
         self.state = state
         self.answer = None
         self.range = 10
-    
+        self.iteration_limit = iteration_limit
+        self.iterations = 0
+
     def get_f(self, inputs, index, value):
         inputs[index] = value
         if str(inputs) in self.results:
             return self.results[str(inputs)]
         else:
             fitness, branch_state, approach_level = calculate_fitness(self.tree, inputs, self.path)
+            # self.iterations += 1
+            # # print(self.iterations)
+            # if self.iteration_limit < self.iterations:
+            #     print("Iterations exceeded")
+            #     raise IterationsExceeded
             # if not self.state:
                 # print(fitness, branch_state, inputs)
             if approach_level == 0 and branch_state == self.state:
@@ -35,36 +39,41 @@ class AVM():
     def satisfied_condition(self, inputs):
         return calculate_fitness(self.tree, inputs, self.path)[1] == self.state
 
-    def search(self, method="avm_ips", inputs=None):
+    def search(self, method="avm", inputs=None):
         if "ips" in method:
-            return self.avm(self.avm_ips, inputs)
+            return self.avm([self.avm_ips], inputs)
         elif "gs" in method:
-            return self.avm(self.avm_gs, inputs)
+            return self.avm([self.avm_gs], inputs)
         elif "ls" in method:
-            return self.avm(self.avm_ls, inputs)
+            return self.avm([self.avm_ls], inputs)
+        elif "avm" in method:
+            # Run all methods, if necessary
+            return self.avm([self.avm_ips, self.avm_gs, self.avm_ls], inputs)
 
-    def avm(self, method, inputs=None):
-        # for method in [self.avm_ips, self.avm_gs]:
-        for j in range(self.attempts):
-            # print("Starting inputs, iteration ", inputs, j)
-            if not inputs:
-                inputs = [random.randint(-self.range, self.range) for i in range(self.arg_count)]
-            # start_inputs = copy.deepcopy(inputs)
-            for i, value in enumerate(inputs):
-                try:
-                    value, fitness = method(inputs, i)
-                except AnswerFound:
-                    # print("Found Answer")
-                    # print(self.answer)
-                    return self.answer
-                if fitness <= 0.0 and self.satisfied_condition(inputs):
-                    # break
+    def avm(self, methods, inputs=None):
+        for method in methods:
+            for j in range(self.attempts):
+                # print("Starting inputs, iteration ", inputs, j)
+                if not inputs:
+                    inputs = [random.randint(-self.range, self.range) for i in range(self.arg_count)]
+                # start_inputs = copy.deepcopy(inputs)
+                for i, value in enumerate(inputs):
+                    try:
+                        value, fitness = method(inputs, i)
+                    except AnswerFound:
+                        # print("Found Answer")
+                        # print(self.answer)
+                        return self.answer
+                    except TimeExceeded:
+                        return "Unable to find solution, time exceeded", inputs
+                    if fitness <= 0.0 and self.satisfied_condition(inputs):
+                        # break
+                        return inputs, calculate_fitness(self.tree, inputs, self.path)
+                    inputs[i] = value
+                if self.satisfied_condition(inputs):
                     return inputs, calculate_fitness(self.tree, inputs, self.path)
-                inputs[i] = value
-            if self.satisfied_condition(inputs):
-                return inputs, calculate_fitness(self.tree, inputs, self.path)
-            inputs = None
-            self.range *= 10
+                inputs = None
+                self.range *= 10
         # print(self.results)
         # print('---')
         # for res in self.results.items():

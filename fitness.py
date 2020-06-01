@@ -47,12 +47,18 @@ def try_wrapped(tree, args):
     exec(code, namespace)
     # TODO Get name of function automatically
     blockPrint()
+    import time
+    start = time.time()
     namespace['wrapper'](trace)
+    end = time.time()
     enablePrint()
+    if end - start > 10:
+        from utils import TimeExceeded
+        raise TimeExceeded
     return trace
 
 def compare_approach(trace, path, value):
-    approach = ('None', 10000, None, None), len(path) - 1
+    approach = ('None', 1, None, None), len(path) - 1
     
     # TODO I think this needs to compare branch distance on any node in the correct path
     for entry in trace:
@@ -65,22 +71,29 @@ def compare_approach(trace, path, value):
     approach_level = approach[1]
     branch_distance = approach[0][1]
 
-    fitness = approach_level + (1 - math.pow(1.00001, -branch_distance)) 
-    if branch_distance < 1000:
+    # fitness = approach_level + (1 - math.pow(1.00001, -branch_distance)) 
+    if branch_distance <= 100:
         # print(branch_distance, value)
         try:
+            # print("REG: ", branch_distance, end=" ")
             fitness = approach_level + (1 - math.pow(1.001, -branch_distance))
         except OverflowError:
             # print(value)
             bd = abs(branch_distance)
             # print(branch_distance, bd)
-            fitness = approach_level + (1 - math.pow(1.001, -math.log(bd)))
+            # fitness = approach_level + math.exp((1 - math.pow(1.00001, -math.log(bd))))
+            # fitness = approach_level + (1 - math.pow(1.00001, -math.log(bd)))
+            # print("LOG _1: ", end=" ")
+            fitness = approach_level + (1 - math.pow(1.00001, -math.log(bd)))
             # print(branch_distance, fitness, value)
         # print(fitness) 
     else:
         bd = abs(branch_distance)
-        fitness = approach_level + (1 - math.pow(1.001, -math.log(bd)))
-        print(bd, fitness)
+        # fitness = approach_level + math.exp((1 - math.pow(1.00001, -math.log(bd))))
+        fitness = approach_level + (1 - math.pow(1.00001, -math.log(bd)))
+        # print("LOG _2: ", end=" ")
+        # fitness = approach_level + (1 - math.pow(1.00001, -bd))
+        # print(bd, fitness, value)
         pass
 
     # bd = abs(branch_distance)
