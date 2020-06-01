@@ -65,12 +65,29 @@ def compare_approach(trace, path, value):
     approach_level = approach[1]
     branch_distance = approach[0][1]
 
-    fitness = approach_level + (1 - math.pow(1.001, -branch_distance)) 
+    fitness = approach_level + (1 - math.pow(1.00001, -branch_distance)) 
+    if branch_distance < 1000:
+        # print(branch_distance, value)
+        try:
+            fitness = approach_level + (1 - math.pow(1.001, -branch_distance))
+        except OverflowError:
+            # print(value)
+            bd = abs(branch_distance)
+            # print(branch_distance, bd)
+            fitness = approach_level + (1 - math.pow(1.001, -math.log(bd)))
+            # print(branch_distance, fitness, value)
+        # print(fitness) 
+    else:
+        bd = abs(branch_distance)
+        fitness = approach_level + (1 - math.pow(1.001, -math.log(bd)))
+        print(bd, fitness)
+        pass
 
-    # try:
-    #     fitness = approach_level + (1 - math.pow(1.001, -branch_distance)) 
-    # except OverflowError:
-    #     pass
+    # bd = abs(branch_distance)
+    # if bd == 0:
+    #     fitness = approach_level
+    # else:
+    #     fitness = approach_level + (1 - math.pow(1.001, -math.log(bd)))
     # print(trace)
     # print(path)
     # print("Approach Level :", approach_level)
@@ -79,4 +96,5 @@ def compare_approach(trace, path, value):
     # print("Fitness: ", fitness)
     # print(entry)
     # print(approach)
+    # print(value, fitness, approach_level, approach[0][2])
     return fitness, approach[0][2], approach_level
