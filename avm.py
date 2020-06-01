@@ -2,6 +2,9 @@ from fitness import calculate_fitness
 from math import floor, ceil
 import random
 
+class AnswerFound(Exception):
+    pass
+
 class AVM():
     def __init__(self, tree, path, arg_count, attempts, state):
         self.results = {}
@@ -10,13 +13,17 @@ class AVM():
         self.arg_count = arg_count
         self.attempts = attempts
         self.state = state
+        self.answer = None
     
     def get_f(self, inputs, index, value):
         inputs[index] = value
         if str(inputs) in self.results:
             return self.results[str(inputs)]
         else:
-            fitness = calculate_fitness(self.tree, inputs, self.path)[0]
+            fitness, branch_state, approach_level = calculate_fitness(self.tree, inputs, self.path)
+            if approach_level == 0 and branch_state == self.state:
+                self.answer = inputs, (fitness, branch_state, approach_level)
+                raise AnswerFound
             self.results[str(inputs)] = fitness
             return fitness
 
@@ -36,12 +43,19 @@ class AVM():
                 inputs = [random.randint(0, 100) for i in range(self.arg_count)]
             # start_inputs = copy.deepcopy(inputs)
             for i, value in enumerate(inputs):
-                value, fitness = method(inputs, i)
-                if fitness < 0.0:
+                try:
+                    value, fitness = method(inputs, i)
+                except AnswerFound:
+                    # print("Found Answer")
+                    # print(self.answer)
+                    return self.answer
+                if fitness <= 0.0:
+                    # break
                     return inputs, calculate_fitness(self.tree, inputs, self.path)
                 inputs[i] = value
             if self.satisfied_condition(inputs):
                 return inputs, calculate_fitness(self.tree, inputs, self.path)
+        # print(self.results)
         return "Unable to find solution", inputs
 
     def avm_ips(self, inputs, index):
