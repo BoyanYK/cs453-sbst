@@ -15,21 +15,30 @@ def main():
     method = "avm_ips"
     target_function = "test_me"
     iterations = 1000
+    retries = 10
     try:
         method = sys.argv[2]
         iterations = int(sys.argv[3])
         target_function = sys.argv[4]
+        retries = int(sys.argv[5])
     except IndexError:
-        # iterations = 1000
         pass
     target_tree = astor.parse_file(target_path)
-    # print(astor.dump_tree(target_tree))
-    # TODO Custom target function name
-    targets, arg_count = control_flow.get_targets(target_tree, target_function)
-    if "avm" in method:
-        perform_avm(target_tree, targets, arg_count, 10, method, iterations, target_function)
-    elif "hill_climb" in method:
-        hill_climb(target_tree, targets, arg_count, iterations, target_function)
+    target_functions = []
+    if int(target_function) == 1:
+        for item in target_tree.body:
+            print(item)
+            if isinstance(item, ast.FunctionDef):
+                target_functions.append(item.name)
+
+    target_functions = [target_function] if len(target_functions) == 0 else target_functions
+    for func_name in target_functions:
+        print("\nCurrent target function: {}".format(func_name))
+        targets, arg_count = control_flow.get_targets(target_tree, func_name)
+        if "avm" in method:
+            perform_avm(target_tree, targets, arg_count, retries, method, iterations, func_name)
+        elif "hill_climb" in method:
+            hill_climb(target_tree, targets, arg_count, iterations, func_name)
 
 
 
@@ -37,6 +46,7 @@ def perform_avm(tree, targets, arg_count, retry_count, method, iterations, targe
     import avm
     results_true = {}
     results_false = {}
+    results = {}
     for target, path in targets.items():
         path = list(reversed(path))[1:]
         print("\nStarting :", target)
@@ -65,8 +75,12 @@ def perform_avm(tree, targets, arg_count, retry_count, method, iterations, targe
                 results_true[target] = value
             else:
                 results_false[target] = value
+            results[(target, state)] = value
                 # print(results_false)
             # results[(target, state)] = value
+    sorted_results = sorted(results.items(), key=lambda x: x[0][0].lineno)
+    for target, (inputs, _) in sorted_results:
+        print("Target: {} - inputs {}".format(target, inputs))
 
 
 def hill_climb(tree, targets, arg_count, iterations, target_function="test_me"):
