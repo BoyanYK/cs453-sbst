@@ -18,6 +18,7 @@ def main():
     try:
         method = sys.argv[2]
         iterations = int(sys.argv[3])
+        target_function = sys.argv[4]
     except IndexError:
         # iterations = 1000
         pass
@@ -53,12 +54,12 @@ def perform_avm(tree, targets, arg_count, retry_count, method, iterations, targe
                 start_value = copy.deepcopy(inputs) if type(inputs) == list else None
                     # print('----- ',prev_target, target, start_value, ' -----')
             # print(results_true)
-            instrumented = visitor.TargetInstrumentation(target, state)
+            instrumented = visitor.TargetInstrumentation(target, state, target_function)
             instrumented = instrumented.visit(copy.deepcopy(tree))
             search = avm.AVM(instrumented, path, arg_count, retry_count, state, iterations, target_function)
             # value = search.avm_ips()
             value = search.search(method, start_value)
-            print(target," Value: ", value)
+            # print(target," Value: ", value)
             # print(target, state)
             if state:
                 results_true[target] = value
@@ -70,10 +71,11 @@ def perform_avm(tree, targets, arg_count, retry_count, method, iterations, targe
 
 def hill_climb(tree, targets, arg_count, iterations, target_function="test_me"):
     import numpy as np
+    target_results = {}
     for target, path in targets.items():
         path = list(reversed(path))[1:] # Removes function_def node
         for state in [True, False]:
-            instrumented = visitor.TargetInstrumentation(target, state)
+            instrumented = visitor.TargetInstrumentation(target, state, target_function)
             instrumented = instrumented.visit(copy.deepcopy(tree))
             # ast.fix_missing_locations(instrumented)
 
@@ -119,12 +121,15 @@ def hill_climb(tree, targets, arg_count, iterations, target_function="test_me"):
                     break
                     # break
             if n > iterations:
-                print(target, " -")
+                target_results[(target, state)] = '-'
+                # print(target, " -")
             else:
-                print(target, value, new_fitness, predicate_value)
-        # print(n)
-        # break
+                target_results[(target, state)] = value
+                # print(target, value, new_fitness, predicate_value)
 
+    sorted_results = sorted(target_results.items(), key=lambda x: x[0][0].lineno)
+    for target, inputs in sorted_results:
+        print("Target: {} - inputs {}".format(target, inputs))
 
 if __name__ == "__main__":
     main()

@@ -12,7 +12,7 @@ class Node(object):
 
     def __str__(self):
         # return "Node {}, depth {}, line {}".format(self.name, self.depth, self.lineno)
-        return "{} @ {}".format(self.name, self.lineno)
+        return "{} @ Line {}".format(self.name, self.lineno)
 
     def get_body(self):
         try:
@@ -38,7 +38,7 @@ class Node(object):
 def get_custom_tree(tree, func_name="test_me"):
     arg_count = 0
     for stmt in tree.body:
-        if isinstance(stmt, ast.FunctionDef) and stmt.name == 'test_me':
+        if isinstance(stmt, ast.FunctionDef) and stmt.name == func_name:
             function = Node(stmt, 0)
             arg_count = len(stmt.args.args)
             break

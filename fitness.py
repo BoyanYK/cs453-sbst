@@ -45,7 +45,6 @@ def try_wrapped(tree, args, func_name="test_me"):
     code = compile(exec_tree, filename='<blah>', mode='exec')
     namespace = {}
     exec(code, namespace)
-    # TODO Get name of function automatically
     blockPrint()
     import time
     start = time.time()
